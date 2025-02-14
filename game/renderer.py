@@ -19,5 +19,5 @@ def draw_road(screen, offset):
     dash_width = 4
     dash_x = WINDOW_WIDTH // 2 - dash_width // 2
     
-    for y in range((-dash_length + offset) % (dash_length * 2), WINDOW_HEIGHT + dash_length, dash_length * 2):
+    for y in range((-dash_length + int(offset)) % (dash_length * 2), WINDOW_HEIGHT + dash_length, dash_length * 2):
         pygame.draw.rect(screen, YELLOW, (dash_x, y, dash_width, dash_length))

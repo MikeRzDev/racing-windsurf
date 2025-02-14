@@ -2,7 +2,7 @@ import pygame
 from config.settings import (
     WINDOW_WIDTH, WINDOW_HEIGHT, FPS, BASE_CPU_SPEED,
     INITIAL_SPAWN_RATE, DIFFICULTY_INCREASE_RATE, GAME_DURATION,
-    GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED
+    GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED, LEVEL_SPEED_MULTIPLIER
 )
 from models.player import Player
 from models.cpu_car import CPUCar
@@ -32,6 +32,9 @@ class GameManager:
         self.high_score = load_high_score()
         self.current_score = 0
         self.road_offset = 0
+        self.current_level = 1
+        self.level_up_time = 0
+        self.show_level_up = False
     
     def handle_events(self):
         for event in pygame.event.get():
@@ -53,9 +56,24 @@ class GameManager:
         current_time = pygame.time.get_ticks()
         elapsed_time = current_time - self.start_time
         
+        # Check for level completion
+        if elapsed_time >= GAME_DURATION:
+            self.current_level += 1
+            self.start_time = current_time
+            self.show_level_up = True
+            self.level_up_time = current_time
+            # Clear existing CPU cars for the next level
+            self.cpu_cars.clear()
+            return
+        
+        # Calculate level-based speeds
+        level_multiplier = LEVEL_SPEED_MULTIPLIER ** (self.current_level - 1)
+        current_road_speed = ROAD_SPEED * level_multiplier
+        current_cpu_speed = BASE_CPU_SPEED * level_multiplier
+        
         # Spawn new CPU cars
         if current_time - self.last_spawn_time >= INITIAL_SPAWN_RATE:
-            speed = BASE_CPU_SPEED + (elapsed_time // DIFFICULTY_INCREASE_RATE) * 0.5
+            speed = current_cpu_speed + (elapsed_time // DIFFICULTY_INCREASE_RATE) * 0.5
             self.cpu_cars.append(CPUCar(WINDOW_WIDTH, speed))
             self.last_spawn_time = current_time
         
@@ -83,15 +101,19 @@ class GameManager:
         # Update explosions
         self.explosions = [exp for exp in self.explosions if exp.update()]
         
+        # Update road animation with level-based speed
+        self.road_offset = (self.road_offset + current_road_speed) % 60
+        
+        # Update level up display
+        if self.show_level_up and current_time - self.level_up_time >= 2000:  # Show for 2 seconds
+            self.show_level_up = False
+        
         # Check win condition
         if elapsed_time >= GAME_DURATION:
             self.game_state = GAME_WIN
             if self.current_score > self.high_score:
                 self.high_score = self.current_score
                 save_high_score(self.high_score)
-        
-        # Update road animation
-        self.road_offset = (self.road_offset + ROAD_SPEED) % 60
     
     def render(self):
         self.screen.fill(WHITE)
@@ -110,26 +132,46 @@ class GameManager:
         font = pygame.font.Font(None, 36)
         score_text = font.render(f'Score: {self.current_score}', True, (0, 0, 0))
         high_score_text = font.render(f'High Score: {self.high_score}', True, (0, 0, 0))
+        level_text = font.render(f'Level: {self.current_level}', True, (0, 0, 0))
         time_left = max(0, (GAME_DURATION - (pygame.time.get_ticks() - self.start_time)) // 1000)
         time_text = font.render(f'Time: {time_left}s', True, (0, 0, 0))
         
         self.screen.blit(score_text, (10, 10))
         self.screen.blit(high_score_text, (10, 40))
-        self.screen.blit(time_text, (10, 70))
+        self.screen.blit(level_text, (10, 70))
+        self.screen.blit(time_text, (10, 100))
+        
+        # Draw level up message
+        if self.show_level_up:
+            level_up_font = pygame.font.Font(None, 72)
+            level_up_text = level_up_font.render(f'LEVEL UP!', True, (255, 0, 0))
+            level_num_text = level_up_font.render(f'Level {self.current_level}', True, (255, 0, 0))
+            
+            x = WINDOW_WIDTH // 2 - level_up_text.get_width() // 2
+            y = WINDOW_HEIGHT // 2 - level_up_text.get_height()
+            self.screen.blit(level_up_text, (x, y))
+            
+            x = WINDOW_WIDTH // 2 - level_num_text.get_width() // 2
+            y = WINDOW_HEIGHT // 2 + 20
+            self.screen.blit(level_num_text, (x, y))
         
         # Draw game over/win message
         if self.game_state != GAME_RUNNING:
             message = "YOU WIN!" if self.game_state == GAME_WIN else "GAME OVER!"
             message_text = font.render(message, True, (0, 0, 0))
             restart_text = font.render("Press R to restart", True, (0, 0, 0))
+            final_level_text = font.render(f"Final Level: {self.current_level}", True, (0, 0, 0))
             
             msg_x = WINDOW_WIDTH // 2 - message_text.get_width() // 2
             msg_y = WINDOW_HEIGHT // 2 - message_text.get_height()
             restart_x = WINDOW_WIDTH // 2 - restart_text.get_width() // 2
             restart_y = WINDOW_HEIGHT // 2 + restart_text.get_height()
+            level_x = WINDOW_WIDTH // 2 - final_level_text.get_width() // 2
+            level_y = restart_y + restart_text.get_height() + 10
             
             self.screen.blit(message_text, (msg_x, msg_y))
             self.screen.blit(restart_text, (restart_x, restart_y))
+            self.screen.blit(final_level_text, (level_x, level_y))
         
         pygame.display.flip()
     
