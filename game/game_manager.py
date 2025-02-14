@@ -153,7 +153,7 @@ class GameManager:
             self.last_spawn_time = current_time
         
         # Spawn meteors after level 5
-        if self.current_level >= 3:
+        if self.current_level >= 5:
             if current_time - self.last_meteor_spawn >= METEOR_SPAWN_RATE:
                 self.meteors.append(Meteor())
                 self.last_meteor_spawn = current_time
@@ -299,12 +299,20 @@ class GameManager:
             level_num_text = level_up_font.render(f'Level {self.current_level}', True, (255, 0, 0))
             
             x = WINDOW_WIDTH // 2 - level_up_text.get_width() // 2
-            y = WINDOW_HEIGHT // 2 - level_up_text.get_height()
+            y = WINDOW_HEIGHT // 2 - level_up_text.get_height() - 20  # Moved up to make room
             self.screen.blit(level_up_text, (x, y))
             
             x = WINDOW_WIDTH // 2 - level_num_text.get_width() // 2
-            y = WINDOW_HEIGHT // 2 + 20
+            y = WINDOW_HEIGHT // 2
             self.screen.blit(level_num_text, (x, y))
+            
+            # Add "Meteor Time!" message at level 5
+            if self.current_level == 5:
+                meteor_font = pygame.font.Font(None, 60)
+                meteor_text = meteor_font.render('Meteor Time!', True, (139, 69, 19))  # Brown color
+                x = WINDOW_WIDTH // 2 - meteor_text.get_width() // 2
+                y = WINDOW_HEIGHT // 2 + 60
+                self.screen.blit(meteor_text, (x, y))
         
         # Draw game over/win message
         if self.game_state != GAME_RUNNING:
