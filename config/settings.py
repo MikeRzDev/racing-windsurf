@@ -13,7 +13,8 @@ PLAYER_SPEED = 5
 BASE_CPU_SPEED = 3
 ROAD_SPEED = 5  # Speed of road movement
 GAME_DURATION = 10000  # 60 seconds per level
-LEVEL_SPEED_MULTIPLIER = 1.3  # Speed increase per level
+WORLD_SPEED_MULTIPLIER = 1.3  # Speed increase for road and CPU cars per level
+PLAYER_SPEED_MULTIPLIER = 1.1  # Speed increase for player per level
 
 # Timing
 INITIAL_SPAWN_RATE = 2000  # milliseconds between spawns

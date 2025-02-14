@@ -2,7 +2,8 @@ import pygame
 from config.settings import (
     WINDOW_WIDTH, WINDOW_HEIGHT, FPS, BASE_CPU_SPEED,
     INITIAL_SPAWN_RATE, DIFFICULTY_INCREASE_RATE, GAME_DURATION,
-    GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED, LEVEL_SPEED_MULTIPLIER
+    GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED,
+    WORLD_SPEED_MULTIPLIER, PLAYER_SPEED_MULTIPLIER, PLAYER_SPEED
 )
 from models.player import Player
 from models.cpu_car import CPUCar
@@ -119,12 +120,14 @@ class GameManager:
             self.level_up_time = current_time
             # Clear existing CPU cars for the next level
             self.cpu_cars.clear()
+            # Update player speed for new level
+            self.player.speed = PLAYER_SPEED * (PLAYER_SPEED_MULTIPLIER ** (self.current_level - 1))
             return
         
         # Calculate level-based speeds
-        level_multiplier = LEVEL_SPEED_MULTIPLIER ** (self.current_level - 1)
-        current_road_speed = ROAD_SPEED * level_multiplier
-        current_cpu_speed = BASE_CPU_SPEED * level_multiplier
+        world_multiplier = WORLD_SPEED_MULTIPLIER ** (self.current_level - 1)
+        current_road_speed = ROAD_SPEED * world_multiplier
+        current_cpu_speed = BASE_CPU_SPEED * world_multiplier
         
         # Spawn new CPU cars
         if current_time - self.last_spawn_time >= INITIAL_SPAWN_RATE:
@@ -162,7 +165,6 @@ class GameManager:
                 break
         
         # Update road offset with fixed speed
-        current_road_speed = ROAD_SPEED * level_multiplier
         self.road_offset = (self.road_offset + current_road_speed) % 90  # Use 90 (total_pattern) as modulo
         
         # Update level up display
