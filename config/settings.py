@@ -38,6 +38,14 @@ GRAY = (100, 100, 100)
 YELLOW = (255, 255, 0)
 DARK_RED = (139, 0, 0)
 WINDOW_BLUE = (100, 149, 237)
+BROWN = (139, 69, 19)
+METEOR_BLUE = (30, 144, 255)
+
+# Meteor settings
+METEOR_MIN_SPEED = 4
+METEOR_MAX_SPEED = 7
+METEOR_SIZE = 30
+METEOR_SPAWN_RATE = 3000  # milliseconds between meteor spawns
 
 # Game states
 GAME_RUNNING = 'running'

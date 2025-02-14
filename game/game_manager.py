@@ -4,12 +4,14 @@ from config.settings import (
     INITIAL_SPAWN_RATE, DIFFICULTY_INCREASE_RATE, GAME_DURATION,
     GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED,
     WORLD_SPEED_MULTIPLIER, PLAYER_SPEED_MULTIPLIER, PLAYER_SPEED,
-    SOUND_SPEED_MULTIPLIER, get_background_music
+    SOUND_SPEED_MULTIPLIER, get_background_music, METEOR_SPAWN_RATE
 )
 from models.player import Player
 from models.cpu_car import CPUCar
 from models.explosion import Explosion
+from models.blue_explosion import BlueExplosion
 from models.power_up import PowerUp
+from models.meteor import Meteor
 from utils.score_manager import load_high_score, save_high_score
 from game.renderer import draw_road
 
@@ -34,8 +36,10 @@ class GameManager:
         self.explosions = []
         self.bullets = []
         self.power_ups = []
+        self.meteors = []
         self.last_spawn_time = pygame.time.get_ticks()
         self.last_power_up_spawn = pygame.time.get_ticks()
+        self.last_meteor_spawn = pygame.time.get_ticks()
         self.power_up_spawn_rate = 10000  # 10 seconds
         self.last_difficulty_increase = pygame.time.get_ticks()
         self.game_state = GAME_RUNNING
@@ -148,6 +152,63 @@ class GameManager:
             self.cpu_cars.append(CPUCar(WINDOW_WIDTH, speed))
             self.last_spawn_time = current_time
         
+        # Spawn meteors after level 5
+        if self.current_level >= 3:
+            if current_time - self.last_meteor_spawn >= METEOR_SPAWN_RATE:
+                self.meteors.append(Meteor())
+                self.last_meteor_spawn = current_time
+
+        # Update meteors
+        for meteor in self.meteors[:]:
+            meteor.move()
+            
+            # Check collision with player
+            if meteor.get_rect().colliderect(self.player.get_rect()):
+                self.explosions.append(BlueExplosion(meteor.x, meteor.y, 70))  # Bigger explosion
+                self.meteors.remove(meteor)
+                self.game_state = GAME_OVER
+                break
+            
+            # Check collision with bullets
+            for bullet in self.bullets[:]:
+                if meteor.get_rect().colliderect(bullet.get_rect()):
+                    self.explosions.append(BlueExplosion(meteor.x, meteor.y, 60))
+                    if meteor in self.meteors:
+                        self.meteors.remove(meteor)
+                    if bullet in self.bullets:
+                        self.bullets.remove(bullet)
+                    self.current_score += 100  # More points for shooting meteors
+                    break
+            
+            # Check collision with CPU cars
+            for car in self.cpu_cars[:]:
+                if meteor.get_rect().colliderect(car.get_rect()):
+                    self.explosions.append(BlueExplosion(meteor.x, meteor.y, 60))
+                    if meteor in self.meteors:
+                        self.meteors.remove(meteor)
+                    self.cpu_cars.remove(car)
+                    self.current_score += 50
+                    break
+            
+            # Check for road explosions
+            if meteor.should_create_explosion():
+                self.explosions.append(BlueExplosion(meteor.x, meteor.y, 80))  # Even bigger explosion
+                if meteor in self.meteors:
+                    self.meteors.remove(meteor)
+                # Check if any cars are caught in the explosion
+                explosion_rect = pygame.Rect(meteor.x - 80, meteor.y - 80, 160, 160)  # Bigger explosion area
+                for car in self.cpu_cars[:]:
+                    if explosion_rect.colliderect(car.get_rect()):
+                        self.cpu_cars.remove(car)
+                        self.current_score += 30
+                if explosion_rect.colliderect(self.player.get_rect()):
+                    self.game_state = GAME_OVER
+            
+            # Remove off-screen meteors
+            if meteor.is_off_screen(WINDOW_HEIGHT):
+                if meteor in self.meteors:
+                    self.meteors.remove(meteor)
+        
         # Update CPU cars
         for car in self.cpu_cars[:]:
             car.move()
@@ -180,7 +241,7 @@ class GameManager:
                 break
         
         # Update road offset with fixed speed
-        self.road_offset = (self.road_offset + current_road_speed) % 90  # Use 90 (total_pattern) as modulo
+        self.road_offset = (self.road_offset + current_road_speed) % 90
         
         # Update level up display
         if self.show_level_up and current_time - self.level_up_time >= 2000:  # Show for 2 seconds
@@ -215,6 +276,8 @@ class GameManager:
             bullet.draw(self.screen)
         for power_up in self.power_ups:
             power_up.draw(self.screen)
+        for meteor in self.meteors:
+            meteor.draw(self.screen)
         
         # Draw HUD
         font = pygame.font.Font(None, 36)
