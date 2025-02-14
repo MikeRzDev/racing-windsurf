@@ -125,7 +125,11 @@ class GameManager:
         
         # Check for level completion
         if elapsed_time >= GAME_DURATION:
-            self.increase_level()
+            self.current_level += 1
+            self.start_time = current_time
+            self.show_level_up = True
+            self.level_up_time = current_time
+
             # Clear existing CPU cars for the next level
             self.cpu_cars.clear()
             # Update player speed for new level
@@ -197,7 +201,7 @@ class GameManager:
             self.background_music_channel.stop()
             self.background_music.set_volume(min(1.0, 1.0 / current_speed))  # Adjust volume to prevent distortion
             self.background_music_channel.play(self.background_music, loops=-1)
-            self.background_music_channel.set_speed(current_speed)
+           
     
     def render(self):
         self.screen.fill(WHITE)
