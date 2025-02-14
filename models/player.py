@@ -64,8 +64,48 @@ class Player:
         for pos in wheel_positions:
             pygame.draw.circle(screen, DARK_RED, pos, wheel_radius)
         
-        # Draw power-up indicator if active
+        # Draw guns when power-up is active
         if self.has_power_up:
+            # Gun dimensions
+            gun_width = 6  # Increased to accommodate two lines
+            gun_height = 30
+            gun_offset = 2
+            barrel_radius = 3
+            line_spacing = 3  # Space between the two vertical lines
+            
+            # Left gun
+            # Gun vertical lines
+            pygame.draw.line(screen, BLACK, 
+                (self.x - gun_offset, self.y + 2),
+                (self.x - gun_offset, self.y + gun_height + 2),
+                2)  # Line thickness
+            pygame.draw.line(screen, BLACK, 
+                (self.x - gun_offset + line_spacing, self.y + 2),
+                (self.x - gun_offset + line_spacing, self.y + gun_height + 2),
+                2)  # Line thickness
+            # Gun barrel
+            pygame.draw.circle(screen, BLACK, (
+                int(self.x - gun_offset + line_spacing/2),
+                self.y + 2
+            ), barrel_radius)
+            
+            # Right gun
+            # Gun vertical lines
+            pygame.draw.line(screen, BLACK, 
+                (self.x + self.width + gun_offset - gun_width, self.y + 2),
+                (self.x + self.width + gun_offset - gun_width, self.y + gun_height + 2),
+                2)  # Line thickness
+            pygame.draw.line(screen, BLACK, 
+                (self.x + self.width + gun_offset - gun_width + line_spacing, self.y + 2),
+                (self.x + self.width + gun_offset - gun_width + line_spacing, self.y + gun_height + 2),
+                2)  # Line thickness
+            # Gun barrel
+            pygame.draw.circle(screen, BLACK, (
+                int(self.x + self.width + gun_offset - gun_width + line_spacing/2),
+                self.y + 2
+            ), barrel_radius)
+            
+            # Draw power-up timer bar
             remaining_time = (self.power_up_duration - (pygame.time.get_ticks() - self.power_up_time)) / self.power_up_duration
             if remaining_time > 0:
                 bar_width = 50

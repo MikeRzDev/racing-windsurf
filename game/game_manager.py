@@ -181,16 +181,6 @@ class GameManager:
                     self.current_score += 100  # More points for shooting meteors
                     break
             
-            # Check collision with CPU cars
-            for car in self.cpu_cars[:]:
-                if meteor.get_rect().colliderect(car.get_rect()):
-                    self.explosions.append(BlueExplosion(meteor.x, meteor.y, 60))
-                    if meteor in self.meteors:
-                        self.meteors.remove(meteor)
-                    self.cpu_cars.remove(car)
-                    self.current_score += 50
-                    break
-            
             # Check for road explosions
             if meteor.should_create_explosion():
                 self.explosions.append(BlueExplosion(meteor.x, meteor.y, 80))  # Even bigger explosion
