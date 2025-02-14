@@ -22,6 +22,10 @@ DIFFICULTY_INCREASE_RATE = 5000  # Increase difficulty every 5 seconds
 
 # File paths
 HIGH_SCORE_FILE = "highscore.json"
+BACKGROUND_MUSIC = "assets/sound/cat.mp3"
+
+# Sound settings
+SOUND_SPEED_MULTIPLIER = 1.25  # Speed increase for background music per level
 
 # Colors
 WHITE = (255, 255, 255)

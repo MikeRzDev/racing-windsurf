@@ -3,7 +3,8 @@ from config.settings import (
     WINDOW_WIDTH, WINDOW_HEIGHT, FPS, BASE_CPU_SPEED,
     INITIAL_SPAWN_RATE, DIFFICULTY_INCREASE_RATE, GAME_DURATION,
     GAME_RUNNING, GAME_OVER, GAME_WIN, WHITE, ROAD_SPEED,
-    WORLD_SPEED_MULTIPLIER, PLAYER_SPEED_MULTIPLIER, PLAYER_SPEED
+    WORLD_SPEED_MULTIPLIER, PLAYER_SPEED_MULTIPLIER, PLAYER_SPEED,
+    BACKGROUND_MUSIC, SOUND_SPEED_MULTIPLIER
 )
 from models.player import Player
 from models.cpu_car import CPUCar
@@ -20,6 +21,11 @@ class GameManager:
         self.screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
         pygame.display.set_caption("2D Car Racing")
         self.clock = pygame.time.Clock()
+        
+        # Load and start background music
+        self.background_music = pygame.mixer.Sound(BACKGROUND_MUSIC)
+        self.background_music_channel = pygame.mixer.Channel(0)
+        self.background_music_channel.play(self.background_music, loops=-1)
         
         self.reset_game()
     
@@ -41,6 +47,11 @@ class GameManager:
         self.current_level = 1
         self.level_up_time = 0
         self.show_level_up = False
+        
+        # Reset sound speed
+        if hasattr(self, 'background_music'):
+            self.background_music_channel.stop()
+            self.background_music_channel.play(self.background_music, loops=-1)
     
     def handle_events(self):
         for event in pygame.event.get():
@@ -114,10 +125,7 @@ class GameManager:
         
         # Check for level completion
         if elapsed_time >= GAME_DURATION:
-            self.current_level += 1
-            self.start_time = current_time
-            self.show_level_up = True
-            self.level_up_time = current_time
+            self.increase_level()
             # Clear existing CPU cars for the next level
             self.cpu_cars.clear()
             # Update player speed for new level
@@ -177,6 +185,19 @@ class GameManager:
             if self.current_score > self.high_score:
                 self.high_score = self.current_score
                 save_high_score(self.high_score)
+    
+    def increase_level(self):
+        self.current_level += 1
+        self.show_level_up = True
+        self.level_up_time = pygame.time.get_ticks()
+        
+        # Increase sound speed based on level
+        if hasattr(self, 'background_music'):
+            current_speed = SOUND_SPEED_MULTIPLIER ** (self.current_level - 1)
+            self.background_music_channel.stop()
+            self.background_music.set_volume(min(1.0, 1.0 / current_speed))  # Adjust volume to prevent distortion
+            self.background_music_channel.play(self.background_music, loops=-1)
+            self.background_music_channel.set_speed(current_speed)
     
     def render(self):
         self.screen.fill(WHITE)
