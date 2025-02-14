@@ -190,19 +190,6 @@ class GameManager:
                 self.high_score = self.current_score
                 save_high_score(self.high_score)
     
-    def increase_level(self):
-        self.current_level += 1
-        self.show_level_up = True
-        self.level_up_time = pygame.time.get_ticks()
-        
-        # Increase sound speed based on level
-        if hasattr(self, 'background_music'):
-            current_speed = SOUND_SPEED_MULTIPLIER ** (self.current_level - 1)
-            self.background_music_channel.stop()
-            self.background_music.set_volume(min(1.0, 1.0 / current_speed))  # Adjust volume to prevent distortion
-            self.background_music_channel.play(self.background_music, loops=-1)
-           
-    
     def render(self):
         self.screen.fill(WHITE)
         
