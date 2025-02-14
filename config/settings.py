@@ -22,7 +22,10 @@ DIFFICULTY_INCREASE_RATE = 5000  # Increase difficulty every 5 seconds
 
 # File paths
 HIGH_SCORE_FILE = "highscore.json"
-BACKGROUND_MUSIC = "assets/sound/cat.mp3"
+def get_background_music(level):
+    # After level 20, use the level 20 music
+    adjusted_level = min(level - 1, 20)
+    return f"assets/sound/cat_speed_{adjusted_level}.mp3"
 
 # Sound settings
 SOUND_SPEED_MULTIPLIER = 1.25  # Speed increase for background music per level
