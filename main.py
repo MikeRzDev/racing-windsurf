@@ -4,7 +4,11 @@ import random
 import json
 import os
 from pygame import gfxdraw
-
+from models.player import Player
+from models.cpu_car import CPUCar
+from models.explosion import Explosion
+from game.renderer import draw_road
+   
 # Initialize Pygame and its mixer
 pygame.init()
 pygame.mixer.init()
@@ -48,137 +52,6 @@ def save_high_score(score):
     with open(HIGH_SCORE_FILE, 'w') as f:
         json.dump({'high_score': score}, f)
 
-class Player:
-    def __init__(self):
-        self.width = CAR_WIDTH
-        self.height = CAR_HEIGHT
-        self.x = (WINDOW_WIDTH - self.width) // 2
-        self.y = WINDOW_HEIGHT - self.height - 20
-        self.speed = PLAYER_SPEED
-    
-    def move(self, keys):
-        # Vertical movement
-        if keys[pygame.K_UP] and self.y > 0:
-            self.y -= self.speed
-        if keys[pygame.K_DOWN] and self.y < WINDOW_HEIGHT - self.height:
-            self.y += self.speed
-        
-        # Horizontal movement
-        road_left = (WINDOW_WIDTH - ROAD_WIDTH) // 2
-        road_right = road_left + ROAD_WIDTH - self.width
-        
-        if keys[pygame.K_LEFT] and self.x > road_left:
-            self.x -= self.speed
-        if keys[pygame.K_RIGHT] and self.x < road_right:
-            self.x += self.speed
-    
-    def draw(self, screen):
-        # Draw car body (black rectangle with details)
-        pygame.draw.rect(screen, BLACK, (self.x, self.y, self.width, self.height))
-        
-        # Draw windows
-        window_width = self.width * 0.7
-        window_height = self.height * 0.2
-        window_x = self.x + (self.width - window_width) / 2
-        window_y = self.y + self.height * 0.2
-        pygame.draw.rect(screen, (100, 149, 237), (window_x, window_y, window_width, window_height))
-        
-        # Draw wheels
-        wheel_radius = 5
-        wheel_positions = [
-            (self.x + wheel_radius + 2, self.y + wheel_radius + 2),
-            (self.x + self.width - wheel_radius - 2, self.y + wheel_radius + 2),
-            (self.x + wheel_radius + 2, self.y + self.height - wheel_radius - 2),
-            (self.x + self.width - wheel_radius - 2, self.y + self.height - wheel_radius - 2)
-        ]
-        for pos in wheel_positions:
-            pygame.draw.circle(screen, DARK_RED, pos, wheel_radius)
-        
-    def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
-
-class CPUCar:
-    def __init__(self, speed):
-        self.width = CAR_WIDTH
-        self.height = CAR_HEIGHT
-        road_left = (WINDOW_WIDTH - ROAD_WIDTH) // 2
-        road_right = road_left + ROAD_WIDTH - self.width
-        self.x = random.randint(road_left, road_right)
-        self.y = -self.height
-        self.speed = speed
-    
-    def move(self):
-        self.y += self.speed
-    
-    def is_off_screen(self):
-        return self.y > WINDOW_HEIGHT
-    
-    def draw(self, screen):
-        # Draw car body
-        pygame.draw.rect(screen, RED, (self.x, self.y, self.width, self.height))
-        
-        # Draw windows
-        window_width = self.width * 0.7
-        window_height = self.height * 0.2
-        window_x = self.x + (self.width - window_width) / 2
-        window_y = self.y + self.height * 0.2
-        pygame.draw.rect(screen, (100, 149, 237), (window_x, window_y, window_width, window_height))
-        
-        # Draw wheels
-        wheel_radius = 5
-        wheel_positions = [
-            (self.x + wheel_radius + 2, self.y + wheel_radius + 2),
-            (self.x + self.width - wheel_radius - 2, self.y + wheel_radius + 2),
-            (self.x + wheel_radius + 2, self.y + self.height - wheel_radius - 2),
-            (self.x + self.width - wheel_radius - 2, self.y + self.height - wheel_radius - 2)
-        ]
-        for pos in wheel_positions:
-            pygame.draw.circle(screen, DARK_RED, pos, wheel_radius)
-    
-    def get_rect(self):
-        return pygame.Rect(self.x, self.y, self.width, self.height)
-
-class Explosion:
-    def __init__(self, x, y):
-        self.x = x
-        self.y = y
-        self.radius = 5
-        self.max_radius = 30
-        self.growing = True
-        self.alpha = 255
-    
-    def update(self):
-        if self.growing:
-            self.radius += 2
-            if self.radius >= self.max_radius:
-                self.growing = False
-        else:
-            self.alpha -= 10
-        return self.alpha > 0
-    
-    def draw(self, screen):
-        surf = pygame.Surface((self.radius * 2, self.radius * 2), pygame.SRCALPHA)
-        pygame.draw.circle(surf, (*RED, self.alpha), (self.radius, self.radius), self.radius)
-        screen.blit(surf, (self.x - self.radius, self.y - self.radius))
-
-def draw_road(screen, offset):
-    # Draw road background
-    road_x = (WINDOW_WIDTH - ROAD_WIDTH) // 2
-    pygame.draw.rect(screen, GRAY, (road_x, 0, ROAD_WIDTH, WINDOW_HEIGHT))
-    
-    # Draw road edges
-    edge_width = 5
-    pygame.draw.rect(screen, WHITE, (road_x, 0, edge_width, WINDOW_HEIGHT))
-    pygame.draw.rect(screen, WHITE, (road_x + ROAD_WIDTH - edge_width, 0, edge_width, WINDOW_HEIGHT))
-    
-    # Draw dashed lines with movement
-    dash_length = 30
-    dash_width = 4
-    dash_x = WINDOW_WIDTH // 2 - dash_width // 2
-    
-    for y in range((-dash_length + offset) % (dash_length * 2), WINDOW_HEIGHT + dash_length, dash_length * 2):
-        pygame.draw.rect(screen, YELLOW, (dash_x, y, dash_width, dash_length))
-
 def main():
     # Create the game window
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -190,7 +63,7 @@ def main():
     current_score = 0
     
     # Game objects and state
-    player = Player()
+    player = Player(WINDOW_WIDTH)
     cpu_cars = []
     explosions = []
     last_spawn_time = pygame.time.get_ticks()
@@ -214,7 +87,7 @@ def main():
             if event.type == pygame.KEYDOWN and game_state != GAME_RUNNING:
                 if event.key == pygame.K_SPACE:
                     # Reset game
-                    player = Player()
+                    player = Player(WINDOW_WIDTH)
                     cpu_cars = []
                     explosions = []
                     game_state = GAME_RUNNING
@@ -232,7 +105,7 @@ def main():
             
             # Handle player movement
             keys = pygame.key.get_pressed()
-            player.move(keys)
+            player.move(keys, WINDOW_WIDTH)
             
             # Increase difficulty over time
             if current_time - last_difficulty_increase > DIFFICULTY_INCREASE_RATE:
@@ -242,7 +115,7 @@ def main():
             
             # Spawn new CPU cars
             if current_time - last_spawn_time > spawn_rate:
-                cpu_cars.append(CPUCar(cpu_speed))
+                cpu_cars.append(CPUCar(WINDOW_WIDTH, cpu_speed))
                 last_spawn_time = current_time
             
             # Update CPU cars
@@ -308,7 +181,7 @@ def main():
             
             restart_text = font.render('Press SPACE to restart', True, BLACK)
             restart_rect = restart_text.get_rect(center=(WINDOW_WIDTH/2, WINDOW_HEIGHT/2 + 90))
-            screen.blit(restart_text, restart_rect)
+            screen.blit(restart_text, restart_text)
         
         pygame.display.flip()
         clock.tick(FPS)
