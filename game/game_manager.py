@@ -139,6 +139,11 @@ class GameManager:
                 self.cpu_cars.remove(car)
                 self.current_score += 1
         
+        # Update explosions
+        for explosion in self.explosions[:]:
+            if not explosion.update():
+                self.explosions.remove(explosion)
+        
         # Check collisions between player and CPU cars
         player_rect = self.player.get_rect()
         for car in self.cpu_cars:

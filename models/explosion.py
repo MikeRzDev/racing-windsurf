@@ -1,5 +1,4 @@
 import pygame
-import time
 
 class Explosion:
     def __init__(self, x, y, target_size):
@@ -8,19 +7,17 @@ class Explosion:
         self.min_radius = 5
         self.max_radius = target_size
         self.radius = self.min_radius
-        self.start_time = time.time()
-        self.duration = 2.0  # 2 seconds
+        self.duration_frames = 60  # 60 frames = 2 seconds at 30 FPS
+        self.current_frame = 0
         
     def update(self):
-        current_time = time.time()
-        elapsed = current_time - self.start_time
-        
-        if elapsed >= self.duration:
+        if self.current_frame >= self.duration_frames:
             return False
         
         # Calculate progress (0 to 1)
-        progress = elapsed / self.duration
+        progress = self.current_frame / self.duration_frames
         self.radius = self.min_radius + (self.max_radius - self.min_radius) * progress
+        self.current_frame += 1
         return True
     
     def draw(self, screen):

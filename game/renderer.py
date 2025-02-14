@@ -54,11 +54,8 @@ def draw_game(screen, game_manager):
     game_manager.player.draw(screen)
     
     # Draw explosions
-    for explosion in game_manager.explosions[:]:
-        if explosion.is_finished():
-            game_manager.explosions.remove(explosion)
-        else:
-            explosion.draw(screen)
+    for explosion in game_manager.explosions:
+        explosion.draw(screen)
     
     # Draw score
     font = pygame.font.Font(None, 36)
