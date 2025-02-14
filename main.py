@@ -13,6 +13,9 @@ CAR_WIDTH = 40
 CAR_HEIGHT = 60
 FPS = 60
 PLAYER_SPEED = 5
+CPU_SPEED = 3
+CPU_SPAWN_RATE = 2000  # milliseconds between spawns
+ROAD_SPEED = 5  # Speed of road movement
 
 # Colors
 WHITE = (255, 255, 255)
@@ -35,10 +38,20 @@ class Player:
         self.speed = PLAYER_SPEED
     
     def move(self, keys):
+        # Vertical movement
         if keys[pygame.K_UP] and self.y > 0:
             self.y -= self.speed
         if keys[pygame.K_DOWN] and self.y < WINDOW_HEIGHT - self.height:
             self.y += self.speed
+        
+        # Horizontal movement
+        road_left = (WINDOW_WIDTH - ROAD_WIDTH) // 2
+        road_right = road_left + ROAD_WIDTH - self.width
+        
+        if keys[pygame.K_LEFT] and self.x > road_left:
+            self.x -= self.speed
+        if keys[pygame.K_RIGHT] and self.x < road_right:
+            self.x += self.speed
     
     def draw(self, screen):
         # Draw car body (black rectangle)
@@ -47,24 +60,51 @@ class Player:
     def get_rect(self):
         return pygame.Rect(self.x, self.y, self.width, self.height)
 
-def draw_road(screen):
+class CPUCar:
+    def __init__(self):
+        self.width = CAR_WIDTH
+        self.height = CAR_HEIGHT
+        # Random x position within road boundaries
+        road_left = (WINDOW_WIDTH - ROAD_WIDTH) // 2
+        road_right = road_left + ROAD_WIDTH - self.width
+        self.x = random.randint(road_left, road_right)
+        self.y = -self.height  # Start above screen
+        self.speed = CPU_SPEED
+    
+    def move(self):
+        self.y += self.speed
+    
+    def is_off_screen(self):
+        return self.y > WINDOW_HEIGHT
+    
+    def draw(self, screen):
+        pygame.draw.rect(screen, RED, (self.x, self.y, self.width, self.height))
+    
+    def get_rect(self):
+        return pygame.Rect(self.x, self.y, self.width, self.height)
+
+def draw_road(screen, offset):
     # Draw road background
     road_x = (WINDOW_WIDTH - ROAD_WIDTH) // 2
     pygame.draw.rect(screen, GRAY, (road_x, 0, ROAD_WIDTH, WINDOW_HEIGHT))
     
-    # Draw dashed lines
+    # Draw dashed lines with movement
     dash_length = 30
     dash_width = 4
     dash_x = WINDOW_WIDTH // 2 - dash_width // 2
     
-    for y in range(0, WINDOW_HEIGHT, dash_length * 2):
+    # Use offset to create moving effect
+    for y in range((-dash_length + offset) % (dash_length * 2), WINDOW_HEIGHT + dash_length, dash_length * 2):
         pygame.draw.rect(screen, YELLOW, (dash_x, y, dash_width, dash_length))
 
 def main():
     player = Player()
+    cpu_cars = []
+    last_spawn_time = pygame.time.get_ticks()
     game_state = GAME_RUNNING
     start_time = pygame.time.get_ticks()
     game_duration = 60000  # 60 seconds in milliseconds
+    road_offset = 0  # For road animation
     
     # Create the game window
     screen = pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
@@ -83,13 +123,34 @@ def main():
                 if event.key == pygame.K_SPACE:
                     # Reset game
                     player = Player()
+                    cpu_cars = []
                     game_state = GAME_RUNNING
                     start_time = pygame.time.get_ticks()
+                    last_spawn_time = start_time
+                    road_offset = 0
         
         if game_state == GAME_RUNNING:
+            # Update road animation
+            road_offset = (road_offset + ROAD_SPEED) % (60)  # 60 is dash_length * 2
+            
             # Handle player movement
             keys = pygame.key.get_pressed()
             player.move(keys)
+            
+            # Spawn new CPU cars
+            if current_time - last_spawn_time > CPU_SPAWN_RATE:
+                cpu_cars.append(CPUCar())
+                last_spawn_time = current_time
+            
+            # Update CPU cars
+            for car in cpu_cars[:]:
+                car.move()
+                # Check collision with player
+                if car.get_rect().colliderect(player.get_rect()):
+                    game_state = GAME_OVER
+                # Remove cars that are off screen
+                if car.is_off_screen():
+                    cpu_cars.remove(car)
             
             # Check win condition
             if elapsed_time >= game_duration:
@@ -97,8 +158,10 @@ def main():
         
         # Draw everything
         screen.fill(WHITE)
-        draw_road(screen)
+        draw_road(screen, road_offset)
         player.draw(screen)
+        for car in cpu_cars:
+            car.draw(screen)
         
         # Draw timer
         if game_state == GAME_RUNNING:
@@ -106,6 +169,10 @@ def main():
             font = pygame.font.Font(None, 36)
             timer_text = font.render(f'Time: {time_left}s', True, BLACK)
             screen.blit(timer_text, (10, 10))
+            
+            # Draw score (number of cars avoided)
+            score_text = font.render(f'Score: {len(cpu_cars)}', True, BLACK)
+            screen.blit(score_text, (10, 50))
         
         # Draw game over or win message
         if game_state in [GAME_OVER, GAME_WIN]:
