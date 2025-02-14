@@ -1,5 +1,6 @@
 import pygame
 from config.settings import WINDOW_HEIGHT, ROAD_WIDTH, CAR_WIDTH, CAR_HEIGHT, PLAYER_SPEED, BLACK, DARK_RED, WINDOW_BLUE
+from models.bullet import Bullet
 
 class Player:
     def __init__(self, window_width):
@@ -8,6 +9,9 @@ class Player:
         self.x = (window_width - self.width) // 2
         self.y = WINDOW_HEIGHT - self.height - 20
         self.speed = PLAYER_SPEED
+        self.has_power_up = False
+        self.power_up_time = 0
+        self.power_up_duration = 5000  # 5 seconds in milliseconds
     
     def move(self, keys, window_width):
         # Vertical movement
@@ -24,6 +28,19 @@ class Player:
             self.x -= self.speed
         if keys[pygame.K_RIGHT] and self.x < road_right:
             self.x += self.speed
+    
+    def shoot(self):
+        if not self.has_power_up:
+            return None
+        # Create two bullets side by side
+        bullet1 = Bullet(self.x + self.width * 0.25, self.y)
+        bullet2 = Bullet(self.x + self.width * 0.75, self.y)
+        return [bullet1, bullet2]
+    
+    def update_power_up(self, current_time):
+        if self.has_power_up:
+            if current_time - self.power_up_time >= self.power_up_duration:
+                self.has_power_up = False
     
     def draw(self, screen):
         # Draw car body
@@ -46,6 +63,16 @@ class Player:
         ]
         for pos in wheel_positions:
             pygame.draw.circle(screen, DARK_RED, pos, wheel_radius)
+        
+        # Draw power-up indicator if active
+        if self.has_power_up:
+            remaining_time = (self.power_up_duration - (pygame.time.get_ticks() - self.power_up_time)) / self.power_up_duration
+            if remaining_time > 0:
+                bar_width = 50
+                bar_height = 5
+                bar_x = self.x + (self.width - bar_width) / 2
+                bar_y = self.y - 10
+                pygame.draw.rect(screen, (255, 0, 0), (bar_x, bar_y, bar_width * remaining_time, bar_height))
     
     def get_rect(self):
         return pygame.Rect(self.x, self.y, self.width, self.height)

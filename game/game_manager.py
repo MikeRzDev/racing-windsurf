@@ -7,6 +7,7 @@ from config.settings import (
 from models.player import Player
 from models.cpu_car import CPUCar
 from models.explosion import Explosion
+from models.power_up import PowerUp
 from utils.score_manager import load_high_score, save_high_score
 from game.renderer import draw_road
 
@@ -25,7 +26,11 @@ class GameManager:
         self.player = Player(WINDOW_WIDTH)
         self.cpu_cars = []
         self.explosions = []
+        self.bullets = []
+        self.power_ups = []
         self.last_spawn_time = pygame.time.get_ticks()
+        self.last_power_up_spawn = pygame.time.get_ticks()
+        self.power_up_spawn_rate = 10000  # 10 seconds
         self.last_difficulty_increase = pygame.time.get_ticks()
         self.game_state = GAME_RUNNING
         self.start_time = pygame.time.get_ticks()
@@ -40,20 +45,70 @@ class GameManager:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return False
-            if event.type == pygame.KEYDOWN and event.key == pygame.K_r and self.game_state != GAME_RUNNING:
-                self.reset_game()
+            if event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_r and self.game_state != GAME_RUNNING:
+                    self.reset_game()
+                elif event.key == pygame.K_SPACE and self.game_state == GAME_RUNNING:
+                    new_bullets = self.player.shoot()
+                    if new_bullets:
+                        self.bullets.extend(new_bullets)
         return True
     
     def update(self):
         if self.game_state != GAME_RUNNING:
             return
         
-        # Update player
+        current_time = pygame.time.get_ticks()
+        
+        # Update player and power-up status
         keys = pygame.key.get_pressed()
         self.player.move(keys, WINDOW_WIDTH)
+        self.player.update_power_up(current_time)
         
-        # Update CPU cars
-        current_time = pygame.time.get_ticks()
+        # Update bullets
+        for bullet in self.bullets[:]:
+            bullet.move()
+            if bullet.is_off_screen():
+                self.bullets.remove(bullet)
+            else:
+                # Check for collisions with CPU cars
+                for car in self.cpu_cars[:]:
+                    if bullet.get_rect().colliderect(car.get_rect()):
+                        # Use car size for explosion
+                        target_size = max(car.get_rect().width, car.get_rect().height)
+                        self.explosions.append(Explosion(
+                            car.get_rect().centerx,
+                            car.get_rect().centery,
+                            target_size
+                        ))
+                        self.cpu_cars.remove(car)
+                        if bullet in self.bullets:
+                            self.bullets.remove(bullet)
+                        self.current_score += 2  # More points for shooting a car
+                        break
+        
+        # Only handle power-ups after level 3
+        if self.current_level >= 3:
+            # Spawn power-ups if none active
+            if not self.player.has_power_up and current_time - self.last_power_up_spawn >= self.power_up_spawn_rate:
+                self.power_ups.append(PowerUp())
+                self.last_power_up_spawn = current_time
+            
+            # Update power-ups
+            for power_up in self.power_ups[:]:
+                power_up.move()
+                if power_up.is_off_screen(WINDOW_HEIGHT):
+                    self.power_ups.remove(power_up)
+                elif power_up.get_rect().colliderect(self.player.get_rect()):
+                    self.player.has_power_up = True
+                    self.player.power_up_time = current_time
+                    self.power_ups.remove(power_up)
+        else:
+            # Clear any existing power-ups if below level 3
+            self.power_ups.clear()
+            self.bullets.clear()
+            self.player.has_power_up = False
+        
         elapsed_time = current_time - self.start_time
         
         # Check for level completion
@@ -84,13 +139,16 @@ class GameManager:
                 self.cpu_cars.remove(car)
                 self.current_score += 1
         
-        # Check collisions
+        # Check collisions between player and CPU cars
         player_rect = self.player.get_rect()
         for car in self.cpu_cars:
             if player_rect.colliderect(car.get_rect()):
+                # Use car size for explosion
+                target_size = max(car.get_rect().width, car.get_rect().height)
                 self.explosions.append(Explosion(
                     player_rect.centerx,
-                    player_rect.centery
+                    player_rect.centery,
+                    target_size
                 ))
                 self.game_state = GAME_OVER
                 if self.current_score > self.high_score:
@@ -98,11 +156,9 @@ class GameManager:
                     save_high_score(self.high_score)
                 break
         
-        # Update explosions
-        self.explosions = [exp for exp in self.explosions if exp.update()]
-        
-        # Update road animation with level-based speed
-        self.road_offset = (self.road_offset + current_road_speed) % 60
+        # Update road offset with fixed speed
+        current_road_speed = ROAD_SPEED * level_multiplier
+        self.road_offset = (self.road_offset + current_road_speed) % 90  # Use 90 (total_pattern) as modulo
         
         # Update level up display
         if self.show_level_up and current_time - self.level_up_time >= 2000:  # Show for 2 seconds
@@ -127,6 +183,10 @@ class GameManager:
             car.draw(self.screen)
         for explosion in self.explosions:
             explosion.draw(self.screen)
+        for bullet in self.bullets:
+            bullet.draw(self.screen)
+        for power_up in self.power_ups:
+            power_up.draw(self.screen)
         
         # Draw HUD
         font = pygame.font.Font(None, 36)
