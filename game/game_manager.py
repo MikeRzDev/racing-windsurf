@@ -167,6 +167,7 @@ class GameManager:
                 self.explosions.append(BlueExplosion(meteor.x, meteor.y, 70))  # Bigger explosion
                 self.meteors.remove(meteor)
                 self.game_state = GAME_OVER
+                self.background_music_channel.stop()
                 break
             
             # Check collision with bullets
@@ -203,6 +204,7 @@ class GameManager:
                         self.current_score += 30
                 if explosion_rect.colliderect(self.player.get_rect()):
                     self.game_state = GAME_OVER
+                    self.background_music_channel.stop()
             
             # Remove off-screen meteors
             if meteor.is_off_screen(WINDOW_HEIGHT):
@@ -233,11 +235,10 @@ class GameManager:
                     target_size
                 ))
                 self.game_state = GAME_OVER
+                self.background_music_channel.stop()
                 if self.current_score > self.high_score:
                     self.high_score = self.current_score
                     save_high_score(self.high_score)
-                # Stop background music when game is over
-                self.background_music_channel.stop()
                 break
         
         # Update road offset with fixed speed
