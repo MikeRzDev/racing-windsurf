@@ -175,6 +175,8 @@ class GameManager:
                 if self.current_score > self.high_score:
                     self.high_score = self.current_score
                     save_high_score(self.high_score)
+                # Stop background music when game is over
+                self.background_music_channel.stop()
                 break
         
         # Update road offset with fixed speed
