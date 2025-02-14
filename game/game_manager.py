@@ -299,11 +299,11 @@ class GameManager:
             level_num_text = level_up_font.render(f'Level {self.current_level}', True, (255, 0, 0))
             
             x = WINDOW_WIDTH // 2 - level_up_text.get_width() // 2
-            y = WINDOW_HEIGHT // 2 - level_up_text.get_height() - 20  # Moved up to make room
+            y = WINDOW_HEIGHT // 2 - level_up_text.get_height() 
             self.screen.blit(level_up_text, (x, y))
             
             x = WINDOW_WIDTH // 2 - level_num_text.get_width() // 2
-            y = WINDOW_HEIGHT // 2
+            y = WINDOW_HEIGHT // 2 + 20
             self.screen.blit(level_num_text, (x, y))
             
             # Add "Meteor Time!" message at level 5
